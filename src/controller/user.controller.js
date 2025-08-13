@@ -60,7 +60,7 @@ async function verifyUser(req, res) {
 
     await Otp.updateOne({ email }, { verified: true })
 
-    const jwtToken = await generateJwtToken({ email, name });
+    const jwtToken = await generateJwtToken({ email, _id: userData?._id });
     return apiResponse(res, 200, "Otp verified successfully", {
         name,
         email,
@@ -101,7 +101,7 @@ async function registerUser(req, res) {
         password: hasedPassword
     })
     await Otp.deleteMany({ email });
-    const jwtToken = await generateJwtToken({ email, name });
+    const jwtToken = await generateJwtToken({ email, _id: userData?._id });
     return apiResponse(res, 200, "User registered successfully", {
         name,
         email,
@@ -128,7 +128,7 @@ async function loginUser(req, res) {
 
     sendOtp(email, 10);
 
-    const jwtToken = await generateJwtToken({ email });
+    const jwtToken = await generateJwtToken({ email, _id: userData?._id });
 
     return apiResponse(res, 200, "Otp sent successfully", { email, jwtToken })
 }

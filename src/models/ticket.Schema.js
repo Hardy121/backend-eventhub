@@ -5,13 +5,8 @@ const ticketSchema = new mongoose.Schema({
         type: Number,
         require: true
     },
-    eventId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "events",
-        required: true
-    },
     type: {
-        type: String
+        enum: ['General', 'Reserved', 'VIP', 'VVIP']
     },
     total: {
         type: Number,
@@ -24,7 +19,12 @@ const ticketSchema = new mongoose.Schema({
     },
     salesEnd: {
         type: Date
-    }
+    },
+    eventId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "events",
+        required: true
+    },
 })
 
 const Tickets = mongoose.model('tickets', ticketSchema)
