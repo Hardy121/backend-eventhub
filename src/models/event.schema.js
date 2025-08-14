@@ -46,9 +46,12 @@ const eventSchema = new mongoose.Schema({
     },
     eventTickets: [
         {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "tickets",
-            required: true
+            price: { type: Number, require: true },
+            type: { type: String, enum: ['General', 'Reserved', 'VIP', 'VVIP'] },
+            total: { type: Number, },
+            booked: { type: Number },
+            salesStarts: { type: String },
+            salesEnd: { type: String },
         }
     ],
     // price: {
