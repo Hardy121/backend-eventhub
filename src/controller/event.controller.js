@@ -4,28 +4,9 @@ const { sendingDataInHeader } = require("../services/sendingDataInHeader");
 const { apiResponse } = require("../utils/apiResponse");
 
 async function createEvents(req, res) {
-
     const userData = await sendingDataInHeader(req);
-
     if (!userData) return apiResponse(res, 401, "Unauthorised request");
-
-    console.log(userData?.id)
-
-    const { title, description, date, startTime, endTime, location, overView, goodToKnow, eventTickets, salesStarts, salesEnd } = req.body;
-
-    const requiredFields = [
-        title,
-        description,
-        date,
-        startTime,
-        endTime,
-        location,
-        overView,
-        goodToKnow,
-        eventTickets,
-        salesStarts,
-        salesEnd
-    ];
+    const { title, description, date, startTime, endTime, location, overView, goodToKnow } = req.body;
 
     const images = await Promise.all(
         req.files.map(async (file) => {
@@ -38,8 +19,13 @@ async function createEvents(req, res) {
             }
         })
     );
-
-    if (requiredFields.some(field => !req.body[field])) {
+    if (
+        !title ||
+        !description ||
+        !date ||
+        !startTime ||
+        !endTime ||
+        !location) {
         return apiResponse(res, 400, 'All fields are required', null)
     }
 
@@ -47,28 +33,32 @@ async function createEvents(req, res) {
         return apiResponse(res, 400, 'Event date must be in the future', null)
     }
 
-    if (eventTickets.length < 1) {
-        return apiResponse(res, 400, 'At least one ticket type is required', null)
-    }
-
+    // if (eventTickets.length < 1) {
+    //     return apiResponse(res, 400, 'At least one ticket type is required', null)
+    // }
 
     const data = await Events.create({
         title,
         description,
         images,
-        url,
         date,
-        public_id,
         startTime,
         endTime,
         location,
         overView,
         goodToKnow,
         organizer: userData?.id,
-        eventTickets
-    })
+        // eventTickets,
+        ispublished: 'draft'
+    });
 
     return apiResponse(res, 200, "success", data)
 }
 
-module.exports = { createEvents }
+async function getOrganisersEvents(req, res) {
+    const { id } = req.params;
+    const findEvent = await Events.findById(id)
+    return apiResponse(res, 200, "Event get successfully", findEvent)
+}
+
+module.exports = { createEvents, getOrganisersEvents }

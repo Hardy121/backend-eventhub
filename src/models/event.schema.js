@@ -14,7 +14,7 @@ const eventSchema = new mongoose.Schema({
         url: { type: String }
     }],
     date: {
-        type: String,
+        type: Date,
         // default: Date.now()
     },
     startTime: {
@@ -32,7 +32,7 @@ const eventSchema = new mongoose.Schema({
     },
     overView: {
         type: String,
-        required: true
+        // required: true
     },
     goodToKnow: [{
         question: { type: String },
@@ -54,6 +54,12 @@ const eventSchema = new mongoose.Schema({
             salesEnd: { type: String },
         }
     ],
+    ispublished: {
+        type: String,
+        default: 'draft'
+    },
+    
+   
     // price: {
     //     type: Number,
     //     required: true
