@@ -5,9 +5,10 @@ const { apiResponse } = require("../utils/apiResponse");
 
 async function createEvents(req, res) {
     const userData = await sendingDataInHeader(req);
-    if (!userData) return apiResponse(res, 401, "Unauthorised request");
+    if (!userData) return apiResponse(res, 401, "Unauthorised request", null);
     const { title, description, date, startTime, endTime, location, overView, goodToKnow } = req.body;
 
+    let images;
     if (req.files) {
         images = await Promise.all(
             req.files.map(async (file) => {
@@ -20,7 +21,7 @@ async function createEvents(req, res) {
                             secure_url: url.secure_url
                         };
                     }
-                ); 
+                );
                 streamifier.createReadStream(file.buffer).pipe(result);
             })
         );
@@ -39,10 +40,6 @@ async function createEvents(req, res) {
     if (date <= Date.now()) {
         return apiResponse(res, 400, 'Event date must be in the future', null)
     }
-
-    // if (eventTickets.length < 1) {
-    //     return apiResponse(res, 400, 'At least one ticket type is required', null)
-    // }
 
     const data = await Events.create({
         title,
@@ -128,6 +125,10 @@ async function addTicketToEvent(req, res) {
     const findEvent = await Events.findById(id)
     if (!findEvent) {
         return apiResponse(res, 401, "Event not found", null)
+    }
+
+    if (eventTickets.length < 1) {
+        return apiResponse(res, 400, 'At least one ticket type is required', null)
     }
 
     const data = await Events.findByIdAndUpdate(id, {
