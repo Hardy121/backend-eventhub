@@ -2,6 +2,8 @@ const { cloudinary } = require("../config/cloudnary.config");
 const Events = require("../models/event.schema");
 const { sendingDataInHeader } = require("../services/sendingDataInHeader");
 const { apiResponse } = require("../utils/apiResponse");
+const streamifier = require("streamifier");
+
 
 async function createEvents(req, res) {
     const userData = await sendingDataInHeader(req);
