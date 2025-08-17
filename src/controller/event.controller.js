@@ -14,17 +14,14 @@ async function createEvents(req, res) {
     if (req.files) {
         images = await Promise.all(
             req.files.map(async (file) => {
-                const result = await cloudinary.uploader.upload_stream(
-                    { folder: 'event app' },
-                    (error, url) => {
-                        if (error) throw error;
-                        return {
-                            public_id: url.public_id,
-                            secure_url: url.secure_url
-                        };
-                    }
-                );
-                streamifier.createReadStream(file.buffer).pipe(result);
+                const url = await cloudinary.uploader.upload(file.buffer, {
+                    folder: 'Event app',
+                    resource_type: "image"
+                })
+                return {
+                    public_id: url.public_id,
+                    secure_url: url.secure_url
+                };
             })
         );
     }
