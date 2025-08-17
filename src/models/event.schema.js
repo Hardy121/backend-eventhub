@@ -48,18 +48,20 @@ const eventSchema = new mongoose.Schema({
         {
             price: { type: Number, require: true },
             type: { type: String, enum: ['General', 'Reserved', 'VIP', 'VVIP'] },
-            total: { type: Number, },
+            quantity: { type: Number, },
             booked: { type: Number },
             salesStarts: { type: String },
+            startTime: { type: String },
             salesEnd: { type: String },
+            endTime: { type: String }
         }
     ],
     ispublished: {
         type: String,
         default: 'draft'
     },
-    
-   
+
+
     // price: {
     //     type: Number,
     //     required: true
