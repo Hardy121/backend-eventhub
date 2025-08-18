@@ -1,12 +1,24 @@
 
 const cloudinary = require('cloudinary').v2
 
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_NAME,
-    api_key: process.env.CLOUDINARY_KEY,
-    api_secret: process.env.COUDINARY_SECRET
-});
+async function uploadImageInCloudinary(path) {
+    try {
+        cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_NAME,
+            api_key: process.env.CLOUDINARY_KEY,
+            api_secret: process.env.COUDINARY_SECRET
+        });
 
+        const uploadResult = await cloudinary.uploader.upload(path, {
+            folder: 'blog app'
+        })
+        return uploadResult
+
+    } catch (error) {
+        console.log("Cloudinary Upload Error:", error);
+    }
+
+}
 
 
 async function deleteImageInCloudinary(params) {
@@ -18,4 +30,4 @@ async function deleteImageInCloudinary(params) {
     }
 }
 
-module.exports = { cloudinary, deleteImageInCloudinary }
+module.exports = { uploadImageInCloudinary, deleteImageInCloudinary }

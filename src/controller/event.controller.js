@@ -1,8 +1,8 @@
-const { cloudinary } = require("../config/cloudnary.config");
+
 const Events = require("../models/event.schema");
 const { sendingDataInHeader } = require("../services/sendingDataInHeader");
 const { apiResponse } = require("../utils/apiResponse");
-const streamifier = require("streamifier");
+const { uploadImageInCloudinary } = require("../config/cloudnary.config")
 
 
 async function createEvents(req, res) {
@@ -14,8 +14,7 @@ async function createEvents(req, res) {
     if (req.files) {
         images = await Promise.all(
             req.files.map(async (file) => {
-                const url = await cloudinary.uploader.upload(file.buffer, {
-                    folder: 'Event app',
+                const url = await uploadImageInCloudinary(file.buffer, {
                     resource_type: "image"
                 })
                 return {
@@ -25,6 +24,8 @@ async function createEvents(req, res) {
             })
         );
     }
+
+    console.log(images)
 
     if (
         !title ||
