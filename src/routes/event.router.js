@@ -12,5 +12,8 @@ router.put('/updateOrganisersEvents/:id', authMiddleware, upload.array('images',
 // add ticket to event
 router.put('/addTicketToEvent/:id', authMiddleware, asyncHandler(eventsController.addTicketToEvent));
 
+router.put('/publicEvent/:id', authMiddleware, asyncHandler(eventsController.publicEvent));
+
+
 
 module.exports = router

@@ -56,16 +56,28 @@ const eventSchema = new mongoose.Schema({
             endTime: { type: String }
         }
     ],
+    eventType: {
+        type: String,
+    },
+    category: {
+        type: String,
+    },
+    Tags: {
+        type: String,
+    },
+    isRefundPolicy: {
+        type: Boolean,
+    },
+    refundPolicy: {
+        type: String
+    },
     ispublished: {
         type: String,
         default: 'draft'
     },
-
-
-    // price: {
-    //     type: Number,
-    //     required: true
-    // }
+    whenToPublish: {
+        type: Date
+    }
 })
 
 

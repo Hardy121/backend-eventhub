@@ -63,25 +63,31 @@ async function updateOrganisersEvents(req, res) {
 
     const { id } = req.params;
 
-    const { title, description, date, startTime, endTime, location, overView, goodToKnow } = req.body;
+    const { title, description, date, startTime, endTime, location, overView, goodToKnow, existingImages } = req.body;
     const findEvent = await Events.findById(id);
     if (!findEvent) {
         return apiResponse(res, 401, "Event not found");
     }
 
+
+
     let images;
+    if (existingImages) {
+        const existing = JSON.parse(existingImages);
+        images = existing;
+    }
+
     if (req.files) {
-        images = await Promise.all(
+        const newImgs = await Promise.all(
             req.files.map(async (file) => {
-                const url = await cloudinary.uploader.upload(file.path, {
-                    folder: 'event app'
-                });
+                const url = await uploadImageInCloudinary(file.buffer)
                 return {
-                    public_id: url?.public_id,
-                    url: url?.secure_url
-                }
+                    public_id: url.public_id,
+                    url: url.secure_url
+                };
             })
         );
+        images = [...(images || []), ...newImgs];
     }
 
     if (date <= Date.now()) {
@@ -112,7 +118,6 @@ async function getOrganisersEvents(req, res) {
     return apiResponse(res, 200, "Event get successfully", findEvent)
 }
 
-
 async function addTicketToEvent(req, res) {
     const userData = await sendingDataInHeader(req);
     if (!userData) return apiResponse(res, 401, "Unauthorised request");
@@ -137,4 +142,31 @@ async function addTicketToEvent(req, res) {
 
 }
 
-module.exports = { createEvents, getOrganisersEvents, updateOrganisersEvents, addTicketToEvent }
+async function publicEvent(req, res) {
+    const userData = await sendingDataInHeader(req);
+    if (!userData) return ThrowError(401, "Unauthorised request");
+    const { id } = req.params;
+
+    const isEventExist = await Events.findById(id);
+    if (!isEventExist) {
+        return ThrowError(400, "Event not found");
+    }
+    const { eventType, category, tags, refundPolicy, isRefundPolicy, whenToPublish } = req.body;
+    // let ispublished;
+    // if (whenToPublish == Date.now()) {
+    //     ispublished = 'publish'
+    // }
+
+    const data = await Events.findByIdAndUpdate(id, {
+        eventType,
+        category,
+        tags,
+        refundPolicy,
+        isRefundPolicy,
+        ispublished: 'published'
+    }, { new: true })
+
+    return apiResponse(res, 200, "Event published successfully", data)
+}
+
+module.exports = { createEvents, getOrganisersEvents, updateOrganisersEvents, addTicketToEvent, publicEvent }
