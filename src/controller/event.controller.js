@@ -2,30 +2,28 @@
 const Events = require("../models/event.schema");
 const { sendingDataInHeader } = require("../services/sendingDataInHeader");
 const { apiResponse } = require("../utils/apiResponse");
-const { uploadImageInCloudinary } = require("../config/cloudnary.config")
-
+const { uploadImageInCloudinary } = require("../config/cloudnary.config");
+const ThrowError = require("../utils/throError");
+const path = require('path')
 
 async function createEvents(req, res) {
     const userData = await sendingDataInHeader(req);
-    if (!userData) return apiResponse(res, 401, "Unauthorised request", null);
+    if (!userData) return ThrowError(401, "Unauthorised request");
     const { title, description, date, startTime, endTime, location, overView, goodToKnow } = req.body;
 
     let images;
     if (req.files) {
         images = await Promise.all(
             req.files.map(async (file) => {
-                const url = await uploadImageInCloudinary(file.buffer, {
-                    resource_type: "image"
-                })
+                const url = await uploadImageInCloudinary(file.buffer)
                 return {
                     public_id: url.public_id,
-                    secure_url: url.secure_url
+                    url: url.secure_url
                 };
             })
         );
     }
 
-    console.log(images)
 
     if (
         !title ||
@@ -34,11 +32,11 @@ async function createEvents(req, res) {
         !startTime ||
         !endTime ||
         !location) {
-        return apiResponse(res, 400, 'All fields are required', null)
+        return ThrowError(400, 'All fields are required')
     }
 
     if (date <= Date.now()) {
-        return apiResponse(res, 400, 'Event date must be in the future', null)
+        return ThrowError(400, 'Event date must be in the future')
     }
 
     const data = await Events.create({

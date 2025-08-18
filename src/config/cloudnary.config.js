@@ -1,25 +1,29 @@
 
 const cloudinary = require('cloudinary').v2
+const streamifier = require("streamifier");
+require('dotenv').config()
 
-async function uploadImageInCloudinary(path) {
-    try {
+
+async function uploadImageInCloudinary(fileBuffer) {
+    return new Promise((resolve, reject) => {
         cloudinary.config({
+            api_secret: process.env.COUDINARY_SECRET,
             cloud_name: process.env.CLOUDINARY_NAME,
             api_key: process.env.CLOUDINARY_KEY,
-            api_secret: process.env.COUDINARY_SECRET
+
         });
 
-        const uploadResult = await cloudinary.uploader.upload(path, {
-            folder: 'blog app'
-        })
-        return uploadResult
+        let stream = cloudinary.uploader.upload_stream(
+            { folder: "event app" },
+            (error, result) => {
+                if (error) reject(error);
+                else resolve(result);
+            }
+        );
 
-    } catch (error) {
-        console.log("Cloudinary Upload Error:", error);
-    }
-
+        streamifier.createReadStream(fileBuffer).pipe(stream);
+    });
 }
-
 
 async function deleteImageInCloudinary(params) {
     try {

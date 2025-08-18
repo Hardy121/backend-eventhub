@@ -3,10 +3,11 @@ function asyncHandler(fun) {
     try {
       await fun(req, res, next);
     } catch (error) {
-     return res.status(error?.statusCode || 500).send({
+      console.log(error)
+      return res.status(error?.statusCode || 500).send({
         statusCode: error?.statusCode || 500,
         success: false,
-        message: error || "Inerval server error.",
+        message: error,
       });
     }
   };
