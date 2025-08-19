@@ -154,10 +154,10 @@ async function publicEvent(req, res) {
         return ThrowError(400, "Event not found");
     }
     const { eventType, category, tags, refundPolicy, isRefundPolicy, whenToPublish } = req.body;
-    // let ispublished;
-    // if (whenToPublish == Date.now()) {
-    //     ispublished = 'publish'
-    // }
+    let ispublished = "published";
+    if (whenToPublish) {
+        ispublished = "draft"
+    }
 
     const data = await Events.findByIdAndUpdate(id, {
         eventType,
@@ -165,7 +165,8 @@ async function publicEvent(req, res) {
         tags,
         refundPolicy,
         isRefundPolicy,
-        ispublished: 'published'
+        ispublished,
+        whenToPublish: whenToPublish ? whenToPublish : null
     }, { new: true })
 
     return apiResponse(res, 200, "Event published successfully", data)
