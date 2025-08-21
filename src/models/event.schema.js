@@ -15,7 +15,6 @@ const eventSchema = new mongoose.Schema({
     }],
     date: {
         type: Date,
-        // default: Date.now()
     },
     startTime: {
         type: String,
@@ -32,7 +31,6 @@ const eventSchema = new mongoose.Schema({
     },
     overView: {
         type: String,
-        // required: true
     },
     goodToKnow: [{
         question: { type: String },
@@ -46,13 +44,13 @@ const eventSchema = new mongoose.Schema({
     },
     eventTickets: [
         {
-            price: { type: Number, require: true },
+            price: { type: Number, required: true },
             type: { type: String, enum: ['General', 'Reserved', 'VIP', 'VVIP'] },
             quantity: { type: Number, },
             booked: { type: Number },
-            salesStarts: { type: String },
+            salesStarts: { type: Date },
             startTime: { type: String },
-            salesEnd: { type: String },
+            salesEnd: { type: Date },
             endTime: { type: String }
         }
     ],
@@ -71,14 +69,15 @@ const eventSchema = new mongoose.Schema({
     refundPolicy: {
         type: String
     },
-    ispublished: {
+    status: {
         type: String,
+        enum: ['draft', 'published', 'cancelled'],
         default: 'draft'
     },
-    whenToPublish: {
-        type: Date
+    publishDate: {
+        type: Date,
     }
-})
+}, { timestamps: true })
 
 
 const Events = mongoose.model('events', eventSchema);

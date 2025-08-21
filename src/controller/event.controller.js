@@ -12,7 +12,7 @@ async function createEvents(req, res) {
     if (!userData) return ThrowError(401, "Unauthorised request");
     const { title, description, date, startTime, endTime, location, overView, goodToKnow } = req.body;
 
-    let images;
+    let images = [];
     if (req.files) {
         images = await Promise.all(
             req.files.map(async (file) => {
@@ -25,18 +25,12 @@ async function createEvents(req, res) {
         );
     }
 
-
-    if (
-        !title ||
-        !description ||
-        !date ||
-        !startTime ||
-        !endTime ||
-        !location) {
+    if ([title, description, date, startTime, endTime, location].some(field => !field?.trim())) {
         return ThrowError(400, 'All fields are required')
     }
 
-    if (date <= Date.now()) {
+    const eventDate = new Date(date);
+    if (eventDate <= new Date()) {
         return ThrowError(400, 'Event date must be in the future')
     }
 
@@ -52,27 +46,26 @@ async function createEvents(req, res) {
         goodToKnow,
         organizer: userData?.id,
         // eventTickets,
-        ispublished: 'draft'
+        publishDate: null,
+        status: 'draft',
     });
 
-    return apiResponse(res, 200, "success", data)
+    return apiResponse(res, 200, "Event created successfully", data)
 }
 
 async function updateOrganisersEvents(req, res) {
     const userData = await sendingDataInHeader(req);
-    if (!userData) return apiResponse(res, 401, "Unauthorised request");
+    if (!userData) return ThrowError(401, "Unauthorised request");
 
     const { id } = req.params;
 
     const { title, description, date, startTime, endTime, location, overView, goodToKnow, existingImages } = req.body;
     const findEvent = await Events.findById(id);
     if (!findEvent) {
-        return apiResponse(res, 401, "Event not found");
+        return ThrowError(401, "Event not found");
     }
 
-
-
-    let images;
+    let images = [];
     if (existingImages) {
         const existing = JSON.parse(existingImages);
         images = existing;
@@ -92,8 +85,9 @@ async function updateOrganisersEvents(req, res) {
         images = [...(images || []), ...newImgs];
     }
 
-    if (date <= Date.now()) {
-        return apiResponse(res, 400, 'Event date must be in the future', null)
+    const eventDate = new Date(date)
+    if (eventDate <= new Date()) {
+        return ThrowError(400, 'Event date must be in the future')
     }
 
     const data = await Events.findByIdAndUpdate(id, {
@@ -106,7 +100,9 @@ async function updateOrganisersEvents(req, res) {
         location,
         overView,
         goodToKnow,
-        ispublished: 'draft'
+        publishDate: null,
+        status: 'draft',
+
     }, { new: true })
     return apiResponse(res, 200, "success", data)
 }
@@ -122,26 +118,42 @@ async function getOrganisersEvents(req, res) {
 
 async function addTicketToEvent(req, res) {
     const userData = await sendingDataInHeader(req);
-    if (!userData) return apiResponse(res, 401, "Unauthorised request");
+    if (!userData) return ThrowError(401, "Unauthorised request");
 
     const { id } = req.params;
     const { eventTickets } = req.body;
 
     const findEvent = await Events.findById(id)
     if (!findEvent) {
-        return apiResponse(res, 401, "Event not found", null)
+        return ThrowError(404, "Event not found")
     }
 
     if (eventTickets.length < 1) {
-        return apiResponse(res, 400, 'At least one ticket type is required', null)
+        return ThrowError(400, 'At least one ticket type is required')
     }
 
-    const data = await Events.findByIdAndUpdate(id, {
-        eventTickets,
-        ispublished: 'draft'
-    }, { new: true });
-    return apiResponse(res, 200, "Tickets add successfully", data)
+    const types = new Set();
+    eventTickets.forEach(ticket => {
+        if (!ticket.price || ticket.price <= 0) {
+            ThrowError(400, "Ticket price must be greater than 0");
+        }
+        if (!ticket.type) {
+            ThrowError(400, "Ticket type is required");
+        }
+        if (!['General', 'Reserved', 'VIP', 'VVIP'].includes(ticket.type)) {
+            ThrowError(400, "Invalid ticket type");
+        }
+        if (types.has(ticket.type)) {
+            ThrowError(400, `Duplicate ticket type '${ticket.type}' is not allowed`);
+        }
+        types.add(ticket.type);
+    });
 
+    const data = await Events.findByIdAndUpdate(id, {
+        $push: { eventTickets: { $each: eventTickets } },
+        status: 'draft'
+    }, { new: true });
+    return apiResponse(res, 200, "Tickets added successfully", data)
 }
 
 async function publicEvent(req, res) {
@@ -153,27 +165,94 @@ async function publicEvent(req, res) {
     if (!isEventExist) {
         return ThrowError(400, "Event not found");
     }
-    const { eventType, category, tags, refundPolicy, isRefundPolicy, whenToPublish } = req.body;
-    let ispublished = "published";
-    if (whenToPublish) {
-        ispublished = "draft"
+
+    if (isEventExist?.organizer?._id.toString() !== userData?.id) {
+        return ThrowError(403, "You are not allowed to publish this event");
     }
+
+    const { eventType, category, tags, refundPolicy, isRefundPolicy, whenToPublish, publishDate, } = req.body;
+
+    let finalPublishDate = isEventExist.publishDate;
+    let status = "draft";
+    if (whenToPublish === "now") {
+        status = "published";
+        finalPublishDate = new Date();
+    } else if (whenToPublish === "later") {
+        if (!publishDate) {
+            return ThrowError(400, "Publish date is required when scheduling later");
+        }
+        if (new Date(publishDate) <= new Date()) {
+            return ThrowError(400, "Publish date must be in the future");
+        }
+        status = "draft";
+        finalPublishDate = new Date(publishDate);
+    }
+
+    let updatedRefundPolicy = isRefundPolicy ? refundPolicy : null;
+
+
 
     const data = await Events.findByIdAndUpdate(id, {
         eventType,
         category,
         tags,
-        refundPolicy,
+        refundPolicy: updatedRefundPolicy,
         isRefundPolicy,
-        ispublished,
-        whenToPublish: whenToPublish ? whenToPublish : null
+        status,
+        publishDate: finalPublishDate
     }, { new: true })
 
     return apiResponse(res, 200, "Event published successfully", data)
 }
 
+// ================================================ get-All-Event ===========================================//
+
+async function getAllEvent(req, res) {
+    const now = new Date();
+
+    await Events.updateMany(
+        { status: "draft", finalPublishDate: { $lte: now } },
+        { $set: { status: "publish" } }
+    );
+
+    const events = await Events.find({ status: "published" }).populate("eventTickets")
+
+
+    if (!events.length) {
+        return ThrowError(404, "Events not found")
+    }
+    return apiResponse(res, 200, "Events fetch successfully", events)
+}
+
+async function getAllEventById(req, res) {
+    const { id } = req.params;
+
+    if (!id) {
+        return ThrowError(400, "Id is required")
+    }
+
+    const event = await Events.findById(id)
+
+    if (!event) {
+        return ThrowError(400, "Event not found")
+    }
+
+    return apiResponse(res, 200, "Event fetch successfully", event)
+
+
+}
+
+// ================================================ bookEvent ===========================================//
+
+async function bookEvent(req, res) {
+    const userData = await sendingDataInHeader(req);
+    if (!userData) return apiResponse(res, 401, "Unauthorised request");
+    const { id } = req.params;
+    const { type } = req.body;
+}
 
 // =========================================================== AI TITLE SUGGESTION =====================================//
+
 const client = new OpenAI({
     apiKey: process.env.OPEN_AI_API_KEY
 });
@@ -252,15 +331,19 @@ async function generateOverviewSuggestions(req, res) {
 
 }
 
-
 module.exports = {
     createEvents,
     getOrganisersEvents,
     updateOrganisersEvents,
     addTicketToEvent,
     publicEvent,
+    // ====================== ai suggetion ==========================
     generateTitleSuggestions,
-    generateOverviewSuggestions
+    generateOverviewSuggestions,
+    // =================== get event ===========================
+    getAllEvent,
+    getAllEventById,
+    bookEvent
 }
 
 //   - Description: ${description || "Not provided"}
